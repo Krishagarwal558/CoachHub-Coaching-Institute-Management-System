@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | CoachHub{% endblock %}
+{% block content %}
+<header class="page-header" id="overview">
+  <div>
+    <span class="eyebrow">{{ user.role|title }} workspace</span>
+    <h1>Good day, {{ user.name.split()[0] }}</h1>
+    <p>Manage institute operations with live attendance, performance, content, and communication records.</p>
+  </div>
+  <div class="header-actions">
+    <span class="status-dot">Session active</span>
+    <a class="button secondary" href="{{ url_for('analytics_api') }}">Analytics API</a>
+  </div>
+</header>
+
+<section class="stats-grid">
+  <article class="stat-card"><span>Total students</span><strong>{{ metrics.students|length }}</strong></article>
+  <article class="stat-card"><span>Teachers</span><strong>{{ metrics.teachers|length }}</strong></article>
+  <article class="stat-card"><span>Classes</span><strong>{{ metrics.classes|length }}</strong></article>
+  <article class="stat-card"><span>Class average</span><strong>{{ metrics.class_avg }}%</strong></article>
+</section>
+
+<section class="grid two" id="progress">
+  <article class="panel">
+    <div class="panel-head"><h2>Performance trend</h2><span class="pill">Chart.js</span></div>
+    <canvas id="scoreChart" data-labels='{{ chart.labels|tojson }}' data-values='{{ chart.scores|tojson }}'></canvas>
+  </article>
+  <article class="panel">
+    <div class="panel-head"><h2>Class analytics</h2><span class="pill">Students</span></div>
+    <canvas id="classChart" data-labels='{{ chart.students|tojson }}' data-scores='{{ chart.studentScores|tojson }}' data-attendance='{{ chart.attendance|tojson }}'></canvas>
+  </article>
+</section>
+
+{% if user.role == 'admin' %}
+<section class="grid two">
+  <article class="panel" id="users">
+    <div class="panel-head"><h2>Create user</h2><span class="pill">Admin controlled</span></div>
+    <form class="form-grid" method="post" action="{{ url_for('create_user') }}">
+      <input name="name" required placeholder="Full name">
+      <input name="email" type="email" required placeholder="Email">
+      <input name="password" type="password" required placeholder="Temporary password">
+      <select name="role"><option value="student">Student</option><option value="teacher">Teacher</option><option value="admin">Admin</option></select>
+      <input name="subject" placeholder="Subject">
+      <input name="class_name" placeholder="Class">
+      <input name="phone" placeholder="Phone">
+      <select name="fee_status"><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
+      <button class="button primary" type="submit">Add user</button>
+    </form>
+  </article>
+  <article class="panel" id="fees">
+    <div class="panel-head"><h2>Fee tracking</h2><span class="pill danger">{{ metrics.unpaid|length }} unpaid</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Class</th><th>Status</th></tr></thead>
+        <tbody>{% for student in metrics.students %}<tr><td>{{ student.name }}</td><td>{{ student.class_name or '-' }}</td><td><span class="pill {{ 'success' if student.fee_status == 'paid' else 'danger' }}">{{ student.fee_status }}</span></td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h2>All users</h2><span class="pill">Search and edit</span></div>
+  <input class="search" data-filter-table="users-table" placeholder="Search users by name, role, class, or email">
+  <div class="table-wrap">
+    <table id="users-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Class</th><th>Subject</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for person in metrics.teachers + metrics.students %}
+        <tr>
+          <form method="post" action="{{ url_for('update_user', user_id=person.id) }}">
+            <td><input name="name" value="{{ person.name }}"></td>
+            <td>{{ person.email }}</td>
+            <td><select name="role"><option {% if person.role=='student' %}selected{% endif %}>student</option><option {% if person.role=='teacher' %}selected{% endif %}>teacher</option><option {% if person.role=='admin' %}selected{% endif %}>admin</option></select></td>
+            <td><input name="class_name" value="{{ person.class_name or '' }}"></td>
+            <td><input name="subject" value="{{ person.subject or '' }}"></td>
+            <td><select name="fee_status"><option {% if person.fee_status=='paid' %}selected{% endif %}>paid</option><option {% if person.fee_status=='unpaid' %}selected{% endif %}>unpaid</option></select></td>
+            <td><select name="status"><option {% if person.status=='active' %}selected{% endif %}>active</option><option {% if person.status=='inactive' %}selected{% endif %}>inactive</option></select></td>
+            <td class="actions"><button class="icon-button" title="Save">Save</button></td>
+          </form>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if user.role in ['teacher', 'admin'] %}
+<section class="grid two">
+  <article class="panel" id="attendance">
+    <div class="panel-head"><h2>Daily attendance</h2><span class="pill">Live register</span></div>
+    <form method="post" action="{{ url_for('mark_attendance') }}">
+      <label>Date<input type="date" name="class_date" value="{{ today }}" required></label>
+      <div class="attendance-list">
+        {% for student in metrics.students %}
+          <label class="check-row"><span>{{ student.name }} <small>{{ student.class_name }}</small></span><select name="student_{{ student.id }}"><option value="present">Present</option><option value="absent">Absent</option></select></label>
+        {% endfor %}
+      </div>
+      <button class="button primary" type="submit">Save attendance</button>
+    </form>
+  </article>
+  <article class="panel" id="marks">
+    <div class="panel-head"><h2>Add marks</h2><span class="pill">Performance</span></div>
+    <form class="form-grid" method="post" action="{{ url_for('add_mark') }}">
+      <select name="student_id">{% for student in metrics.students %}<option value="{{ student.id }}">{{ student.name }}</option>{% endfor %}</select>
+      <input name="subject" required placeholder="Subject">
+      <input name="test_name" required placeholder="Test name">
+      <input name="score" type="number" step="0.1" required placeholder="Score">
+      <input name="max_score" type="number" step="0.1" required value="100">
+      <input name="test_date" type="date" value="{{ today }}" required>
+      <button class="button primary" type="submit">Save marks</button>
+    </form>
+  </article>
+</section>
+
+<section class="grid two">
+  <article class="panel" id="content">
+    <div class="panel-head"><h2>Publish content</h2><span class="pill">Notes, assignments, lectures</span></div>
+    <form class="form-grid" method="post" action="{{ url_for('add_content') }}" enctype="multipart/form-data">
+      <input name="title" required placeholder="Title">
+      <input name="subject" required placeholder="Subject">
+      <select name="content_type"><option value="note">Note</option><option value="assignment">Assignment</option><option value="lecture">Lecture</option></select>
+      <input name="due_date" type="date">
+      <input name="video_url" placeholder="Video link or embed URL">
+      <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.png,.jpg">
+      <textarea name="description" placeholder="Description"></textarea>
+      <button class="button primary" type="submit">Publish</button>
+    </form>
+  </article>
+  <article class="panel">
+    <div class="panel-head"><h2>Answer doubts</h2><span class="pill">{{ doubts|length }} threads</span></div>
+    <div class="stack">
+      {% for doubt in doubts %}
+        <form class="question-card" method="post" action="{{ url_for('answer_doubt', doubt_id=doubt.id) }}">
+          <strong>{{ doubt.student_name }}</strong>
+          <p>{{ doubt.question }}</p>
+          {% if doubt.answer %}<small>Answered: {{ doubt.answer }}</small>{% else %}<textarea name="answer" required placeholder="Write a clear answer"></textarea><button class="button secondary" type="submit">Reply</button>{% endif %}
+        </form>
+      {% else %}<p class="muted">No student doubts yet.</p>{% endfor %}
+    </div>
+  </article>
+</section>
+{% endif %}
+
+<section class="grid two">
+  <article class="panel" id="announcements">
+    <div class="panel-head"><h2>Announcements</h2><span class="pill">Institute feed</span></div>
+    {% if user.role in ['teacher', 'admin'] %}
+      <form class="inline-form" method="post" action="{{ url_for('post_announcement') }}">
+        <input name="title" required placeholder="Title">
+        <select name="audience"><option value="all">Everyone</option><option value="students">Students</option><option value="teachers">Teachers</option></select>
+        <textarea name="body" required placeholder="Message"></textarea>
+        <button class="button primary" type="submit">Post</button>
+      </form>
+    {% endif %}
+    <div class="stack">
+      {% for item in announcements %}
+        <div class="notice"><strong>{{ item.title }}</strong><p>{{ item.body }}</p><small>{{ item.author_name }} · {{ item.created_at[:10] }}</small></div>
+      {% else %}<p class="muted">No announcements yet.</p>{% endfor %}
+    </div>
+  </article>
+  <article class="panel" id="learning">
+    <div class="panel-head"><h2>Learning library</h2><span class="pill">{{ content|length }} items</span></div>
+    <div class="content-grid">
+      {% for item in content %}
+        <div class="content-card">
+          <span class="pill">{{ item.content_type }}</span>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.description or item.subject }}</p>
+          {% if item.file_path %}<a href="{{ url_for('static', filename=item.file_path) }}" target="_blank">Download file</a>{% endif %}
+          {% if item.video_url %}<a href="{{ item.video_url }}" target="_blank">Open lecture</a>{% endif %}
+          {% if user.role == 'student' and item.content_type == 'assignment' %}
+            <form method="post" action="{{ url_for('submit_assignment', assignment_id=item.id) }}" enctype="multipart/form-data">
+              <input name="file" type="file">
+              <input name="note" placeholder="Submission note">
+              <button class="button secondary" type="submit">Submit</button>
+            </form>
+          {% endif %}
+        </div>
+      {% else %}<p class="muted">No notes, assignments, or lectures published yet.</p>{% endfor %}
+    </div>
+  </article>
+</section>
+
+{% if user.role == 'student' %}
+<section class="grid two" id="doubts">
+  <article class="panel">
+    <div class="panel-head"><h2>Ask a doubt</h2><span class="pill">Q&A</span></div>
+    <form method="post" action="{{ url_for('ask_doubt') }}">
+      <textarea name="question" required placeholder="Type your question for the teaching team"></textarea>
+      <button class="button primary" type="submit">Send doubt</button>
+    </form>
+  </article>
+  <article class="panel">
+    <div class="panel-head"><h2>Feedback</h2><span class="pill">Student voice</span></div>
+    <form class="form-grid" method="post" action="{{ url_for('submit_feedback') }}">
+      <select name="rating"><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Average</option><option value="2">2 - Needs work</option><option value="1">1 - Poor</option></select>
+      <textarea name="message" required placeholder="Share feedback about classes, content, or support"></textarea>
+      <button class="button primary" type="submit">Submit feedback</button>
+    </form>
+  </article>
+</section>
+{% endif %}
+
+<section class="grid two">
+  <article class="panel">
+    <div class="panel-head"><h2>Marks record</h2><span class="pill">Tests</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Student</th><th>Subject</th><th>Test</th><th>Score</th><th>Date</th></tr></thead><tbody>{% for mark in marks %}<tr><td>{{ mark.student_name }}</td><td>{{ mark.subject }}</td><td>{{ mark.test_name }}</td><td>{{ mark.score }}/{{ mark.max_score }}</td><td>{{ mark.test_date }}</td></tr>{% endfor %}</tbody></table></div>
+  </article>
+  <article class="panel">
+    <div class="panel-head"><h2>Attendance record</h2><span class="pill">Daily</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Student</th><th>Date</th><th>Status</th></tr></thead><tbody>{% for row in attendance %}<tr><td>{{ row.student_name }}</td><td>{{ row.class_date }}</td><td><span class="pill {{ 'success' if row.status == 'present' else 'danger' }}">{{ row.status }}</span></td></tr>{% endfor %}</tbody></table></div>
+  </article>
+</section>
+
+{% if user.role == 'admin' %}
+<section class="panel" id="feedback">
+  <div class="panel-head"><h2>Student feedback</h2><span class="pill">Review board</span></div>
+  <div class="stack">{% for row in feedback_rows %}<div class="notice"><strong>{{ row.student_name }} · {{ row.rating }}/5</strong><p>{{ row.message }}</p><small>{{ row.created_at[:10] }}</small></div>{% else %}<p class="muted">No feedback submitted yet.</p>{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}CoachHub | Coaching Institute Management{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <a class="brand public-brand" href="{{ url_for('home') }}"><span class="brand-mark">C</span><span>CoachHub</span></a>
+    <h1>Coaching institute operations, in one polished workspace.</h1>
+    <p>Run students, teachers, attendance, fees, learning content, announcements, analytics, doubts, and feedback from a clean SaaS dashboard built for real institutes.</p>
+    <div class="hero-actions">
+      {% if has_admin %}
+        <a class="button primary" href="{{ url_for('login') }}">Open workspace</a>
+      {% else %}
+        <a class="button primary" href="{{ url_for('setup_admin') }}">Create first admin</a>
+      {% endif %}
+      <a class="button secondary" href="{{ url_for('register') }}">Student registration</a>
+    </div>
+    <p class="install-note">Fresh installs start empty. The first admin creates teachers and students from the dashboard.</p>
+  </div>
+  <div class="hero-panel">
+    <div class="mini-topbar"></div>
+    <div class="metric-grid">
+      <div><strong>RBAC</strong><span>Admin, Teacher, Student</span></div>
+      <div><strong>SQL</strong><span>SQLite storage</span></div>
+      <div><strong>Files</strong><span>Notes and submissions</span></div>
+      <div><strong>Charts</strong><span>Progress analytics</span></div>
+    </div>
+    <div class="preview-chart">
+      <span style="height:48%"></span><span style="height:70%"></span><span style="height:58%"></span><span style="height:84%"></span><span style="height:76%"></span><span style="height:92%"></span>
+    </div>
+    <div class="activity-list">
+      <p><b>Admin</b> Create teachers and student batches</p>
+      <p><b>Teacher</b> Publish attendance, marks, and content</p>
+      <p><b>Student</b> Track progress and submit assignments</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Sign in | CoachHub{% endblock %}
+{% block content %}
+<section class="auth-screen">
+  <form class="auth-card" method="post">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">C</span><span>CoachHub</span></a>
+    <h1>Sign in</h1>
+    <p>Use your institute role account to open the correct workspace.</p>
+    <label>Email<input name="email" type="email" required placeholder="admin@yourinstitute.com"></label>
+    <label>Password<input name="password" type="password" required placeholder="Password"></label>
+    <button class="button primary full" type="submit">Continue</button>
+    {% if not has_admin %}
+      <a class="button secondary full" href="{{ url_for('setup_admin') }}">Create first admin</a>
+    {% endif %}
+    <a href="{{ url_for('register') }}">New student? Register here</a>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}CoachHub{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </head>
+  <body>
+    <div class="shell">
+      {% if current_user %}
+        <aside class="sidebar">
+          <a class="brand" href="{{ url_for('dashboard') }}">
+            <span class="brand-mark">C</span>
+            <span>CoachHub</span>
+          </a>
+          <nav class="nav">
+            <a href="#overview">Overview</a>
+            {% if current_user.role == 'admin' %}
+              <a href="#users">Users</a>
+              <a href="#fees">Fees</a>
+              <a href="#feedback">Feedback</a>
+            {% elif current_user.role == 'teacher' %}
+              <a href="#attendance">Attendance</a>
+              <a href="#marks">Marks</a>
+              <a href="#content">Content</a>
+            {% else %}
+              <a href="#progress">Progress</a>
+              <a href="#learning">Learning</a>
+              <a href="#doubts">Doubts</a>
+            {% endif %}
+            <a href="#announcements">Announcements</a>
+          </nav>
+          <div class="sidebar-card">
+            <span class="eyebrow">Signed in</span>
+            <strong>{{ current_user.name }}</strong>
+            <small>{{ current_user.role|title }}</small>
+            <a class="button ghost full" href="{{ url_for('logout') }}">Sign out</a>
+          </div>
+        </aside>
+      {% endif %}
+      <main class="{% if current_user %}workspace{% else %}public{% endif %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="toast-stack">
+              {% for category, message in messages %}
+                <div class="toast {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>

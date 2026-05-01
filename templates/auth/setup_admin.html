@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Set up admin | CoachHub{% endblock %}
+{% block content %}
+<section class="auth-screen">
+  <form class="auth-card" method="post">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">C</span><span>CoachHub</span></a>
+    <h1>Create first admin</h1>
+    <p>This clean install has no users yet. Create the institute owner account, then add teachers and students from the admin panel.</p>
+    <label>Full name<input name="name" required placeholder="Institute admin"></label>
+    <label>Email<input name="email" type="email" required placeholder="admin@yourinstitute.com"></label>
+    <label>Phone<input name="phone" placeholder="9876543210"></label>
+    <label>Password<input name="password" type="password" required minlength="8"></label>
+    <button class="button primary full" type="submit">Create admin account</button>
+    <a href="{{ url_for('login') }}">Already set up?</a>
+  </form>
+</section>
+{% endblock %}
